@@ -1,3 +1,4 @@
+####################### STEP 9 : 执行完整手写 MFCC 39 维特征流水线 #######################
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,6 +27,7 @@ from src.stft import compute_power_spectrum, compute_stft_per_frame
 class PipelineResult:
     """保存单文件处理结果与中间数组。"""
 
+    # Path : 文件路径类，用来表示文件系统中的路径
     audio_path: Path
     sample_rate: int
     duration_sec: float
@@ -38,9 +40,13 @@ class PipelineResult:
 
 def run_mfcc_pipeline(audio_path: Path, cfg: MFCCConfig) -> PipelineResult:
     """执行完整手写 MFCC 39 维特征流水线。"""
+    """返回值：PipelineResult 类，包含处理结果和中间数组"""
+    # arrays: dict[str, np.ndarray] = {} : 用来存放中间数组
+    # metrics: dict[str, float | int] = {} : 用来存放指标
     arrays: dict[str, np.ndarray] = {}
     metrics: dict[str, float | int] = {}
     try:
+        # load_audio : 加载音频文件，返回音频信号、采样率和通道数
         signal, sr, channels = load_audio(
             audio_path=audio_path,
             expected_sample_rate=cfg.sample_rate,
@@ -53,6 +59,7 @@ def run_mfcc_pipeline(audio_path: Path, cfg: MFCCConfig) -> PipelineResult:
 
         emphasized = pre_emphasis(signal, alpha=cfg.pre_emphasis_alpha)
         arrays["pre_emphasis_signal"] = emphasized
+        # summarize_signal : 总结信号的统计信息
         metrics.update({f"pre_{k}": v for k, v in summarize_signal(emphasized).items()})
 
         frames, frame_meta = frame_signal(
@@ -114,7 +121,16 @@ def run_mfcc_pipeline(audio_path: Path, cfg: MFCCConfig) -> PipelineResult:
         _assert_shapes(arrays, cfg.n_mels)
         _assert_finite(arrays)
 
+        # sr : 采样率
+        # duration : 音频时长
+        # num_samples : 音频采样点数
+        # num_frames : 音频帧数
+        # mfcc_rows : 静态 MFCC 行数
+        # mfcc_cols : 静态 MFCC 列数
+        # final_rows : 最终特征行数
+        # final_cols : 最终特征列数
         duration = signal.size / sr
+        # matrics ：存放指标
         metrics.update(
             {
                 "sample_rate": sr,
@@ -135,9 +151,11 @@ def run_mfcc_pipeline(audio_path: Path, cfg: MFCCConfig) -> PipelineResult:
             status="ok",
             error="",
             arrays=arrays,
+            # metrics一并传进
             metrics=metrics,
         )
     except Exception as exc:  # noqa: BLE001
+        # 如果发生异常，则返回 PipelineResult 类，包含处理结果和中间数组
         return PipelineResult(
             audio_path=audio_path,
             sample_rate=0,

@@ -30,6 +30,7 @@ def build_aligned_reference_input(
         raise ValueError("num_frames 与信号长度不匹配")
     left = (n_fft - frame_length) // 2
     right = n_fft - frame_length - left
+    # concatenate: 拼接，将多个数组沿着指定的轴（axis=0 表示行，axis=1 表示列）拼接在一起
     return np.concatenate(
         [
             np.zeros(left),

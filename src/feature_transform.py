@@ -1,3 +1,5 @@
+####################### STEP 8 : 拼接特征，得到 39 维特征 #######################
+
 from __future__ import annotations
 
 import numpy as np
@@ -9,6 +11,7 @@ def assemble_static_feature(static_mfcc: np.ndarray, log_energy: np.ndarray) -> 
         raise ValueError("输入必须为二维矩阵")
     if static_mfcc.shape[0] != log_energy.shape[0]:
         raise ValueError("帧数不一致")
+    # axis=1：沿着每一行（即跨越不同的梅尔频带）进行拼接
     return np.concatenate([static_mfcc, log_energy], axis=1)
 
 

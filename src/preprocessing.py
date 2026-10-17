@@ -1,3 +1,8 @@
+"""第一阶段：将语音变成适合处理的信号"""
+"""STEP 1 : A/D 转换，离散的语音信号处理"""
+"""STEP 2 : STEP 2 : Preemphasis：预加重"""
+"""STEP 3 : Windowing：分帧与加窗"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-
+####################### STEP 1 : A/D 转换，离散的语音信号处理 ####################### 
 def load_audio(
     audio_path: Path,
     expected_sample_rate: int = 16000,
@@ -23,6 +28,7 @@ def load_audio(
     if signal.shape[0] == 0:
         raise ValueError(f"音频为空: {audio_path}")
 
+    # 明确使用单声道
     if original_channels == 1:
         signal = signal[:, 0]
     else:
@@ -37,6 +43,7 @@ def load_audio(
     if not np.all(np.isfinite(signal)):
         raise ValueError(f"音频包含 NaN/Inf: {audio_path}")
 
+    # 峰值检测，用于检查音频是否超出 [-1, 1] 范围
     peak = float(np.max(np.abs(signal)))
     if peak > 1.0:
         # 不裁剪，仅提示：超出 [-1, 1] 说明输入并非常规归一化 PCM
@@ -70,17 +77,19 @@ def summarize_signal(signal: np.ndarray) -> dict[str, float]:
         "rms": rms,
     }
 
-
+####################### STEP 2 : Preemphasis：预加重 #######################
+### $$x'[n]=x[n]-\alpha x[n-1]$$ 其中 $\alpha$ 是预加重系数，通常取 0.97
 def pre_emphasis(signal: np.ndarray, alpha: float = 0.97) -> np.ndarray:
     """预加重：提升高频相对能量，缓解声道谱倾斜。"""
     if signal.ndim != 1:
         raise ValueError("pre_emphasis 输入必须是一维信号")
+    # empty_like： 创建一个与传入的 signal 具有相同形状（Shape）但内容未初始化（内存随机）的新数组
     emphasized = np.empty_like(signal, dtype=np.float64)
     emphasized[0] = signal[0]
     emphasized[1:] = signal[1:] - alpha * signal[:-1]
     return emphasized
 
-
+####################### STEP 3 : Windowing：分帧与加窗 #######################
 def frame_signal(
     signal: np.ndarray,
     frame_length: int,
@@ -95,17 +104,28 @@ def frame_signal(
         raise ValueError("无法对空信号分帧")
 
     num_samples = signal.size
+    # 如果信号长度小于帧长，则只有一帧
     if num_samples <= frame_length:
         num_frames = 1
+    # 如果信号长度大于帧长，则计算需要多少帧
     else:
+        # 总长度减去第一帧，看看剩下的长度能容纳多少个“帧移”，向上取整（np.ceil）后再加 1
         num_frames = int(np.ceil((num_samples - frame_length) / frame_step)) + 1
+    # 计算补零长度
     padded_length = (num_frames - 1) * frame_step + frame_length
     pad_width = padded_length - num_samples
-
+    # 补零
+    # (0, pad_width)：在信号前面补零，(pad_width, 0)：在信号后面补零
+    # constant：填充模式
     padded = np.pad(signal, (0, pad_width), mode="constant", constant_values=0.0)
+    # 切分
     indices = (
+        # [:, None] ： 列向量
+        # [None, :] ： 行向量
+        # 矩阵的“广播相加”：将两个一维数组广播成两个二维矩阵，然后相加
         np.arange(num_frames)[:, None] * frame_step + np.arange(frame_length)[None, :]
     )
+    # frames 是一个二维的 np.ndarray，形状为 (num_frames, frame_length)
     frames = padded[indices]
     meta = {
         "num_samples": int(num_samples),
@@ -122,6 +142,7 @@ def build_hamming_window(frame_length: int) -> np.ndarray:
     """按定义手动构造 Hamming 窗。"""
     if frame_length <= 1:
         raise ValueError("frame_length 必须大于 1")
+    # 利用 NumPy 生成一个从 0 到 frame_length - 1 的一维数组，代表帧内每一个采样点的序号 n
     n = np.arange(frame_length, dtype=np.float64)
     return 0.54 - 0.46 * np.cos((2.0 * np.pi * n) / (frame_length - 1))
 
@@ -132,6 +153,10 @@ def apply_window(frames: np.ndarray, window: np.ndarray) -> np.ndarray:
         raise ValueError("frames 必须是二维矩阵")
     if window.ndim != 1 or window.shape[0] != frames.shape[1]:
         raise ValueError("window 长度必须等于每帧采样点数")
+    # frames ：(num_frames, frame_length)（例如 (100, 400)，代表有 100 帧，每帧 400 个采样点）
+    # window 的形状原本是 (400,)，经过 window[None, :] 处理后，
+    # 它的形状变成了 (1, 400)（变成了一个“只有 1 行、400 列”的二维行向量）
+    # 矩阵的“广播相乘”：让 frames 里的每一行（即每一帧的 400 个采样点），都乘上同一个汉明窗里的 400 个权重值
     return frames * window[None, :]
 
 
@@ -139,5 +164,8 @@ def compute_log_energy(windowed_frames: np.ndarray, log_epsilon: float) -> np.nd
     """根据加窗帧计算逐帧对数短时能量。"""
     if windowed_frames.ndim != 2:
         raise ValueError("windowed_frames 必须是二维矩阵")
+    # keepdims=True 的作用是保持输出结果依然是一个二维列向量（形状为 [num_frames, 1]）
+    # axis=1：沿着行（帧）的方向求和
     energy = np.sum(windowed_frames * windowed_frames, axis=1, keepdims=True)
+    # log_epsilon：极小值防止负无穷，保证数学安全
     return np.log(energy + log_epsilon)

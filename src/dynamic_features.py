@@ -1,11 +1,19 @@
+####################### STEP 7 : 计算 Delta 和 Delta-Delta #######################
+# 静态 MFCC 只代表了某一帧的静态频谱，
+# 而差分特征（Delta 及其加速度）能够反映语音信号随时间变化的动态趋势和斜率
+
 from __future__ import annotations
 
 import numpy as np
 
 
 def _edge_padded(mat: np.ndarray, pad: int) -> np.ndarray:
+    """在矩阵的上下两端（时间轴的头尾）进行边界填充"""
     if mat.ndim == 1:
         mat = mat[:, None]
+    # 第一个元组 (pad, pad)：在行方向（时间轴）的头部和尾部各填充 pad 行
+    # 第二个元组 (0, 0)：在列方向（梅尔频带）的头部和尾部各填充 0 列
+    # mode="edge"：使用边缘填充模式，即用最外层的值填充
     return np.pad(mat, ((pad, pad), (0, 0)), mode="edge")
 
 
@@ -23,6 +31,7 @@ def compute_delta(features: np.ndarray, window: int = 2) -> np.ndarray:
     delta = np.zeros_like(features, dtype=np.float64)
 
     for t in range(features.shape[0]):
+        # 创建一个用来累加特征维度的临时向量，它的长度等于特征的维数（即 features.shape[1]，比如 12 维）
         acc = np.zeros(features.shape[1], dtype=np.float64)
         for r in range(1, window + 1):
             acc += r * (padded[t + window + r] - padded[t + window - r])

@@ -1,0 +1,2 @@
+audio_file,status,error,sample_rate,channels,duration_sec,num_samples,num_frames,mfcc_shape,final_feature_shape,mfcc_mae,mfcc_rmse,mfcc_max_abs_error,mfcc_scaled_mae,log_mel_mae
+1089-134686-0000.wav,ok,,16000,1,10.435,166960,1042,"(1042, 12)","(1042, 39)",44.479960,71.590075,482.430234,0.509054,0.060960

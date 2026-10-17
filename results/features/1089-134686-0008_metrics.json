@@ -1,0 +1,23 @@
+{
+  "channels": 1,
+  "min": -0.33538818359375,
+  "max": 0.45428466796875,
+  "mean": -0.00010095202373714362,
+  "rms": 0.04136263260072209,
+  "pre_min": -0.17701538085937502,
+  "pre_max": 0.19884796142578126,
+  "pre_mean": -3.012890978695581e-06,
+  "pre_rms": 0.01232400918001023,
+  "num_samples": 107680,
+  "padded_length": 107760,
+  "pad_width": 80,
+  "num_frames": 672,
+  "frame_length": 400,
+  "frame_step": 160,
+  "sample_rate": 16000,
+  "duration_sec": 6.73,
+  "mfcc_rows": 672,
+  "mfcc_cols": 12,
+  "final_rows": 672,
+  "final_cols": 39
+}

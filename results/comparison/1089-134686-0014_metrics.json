@@ -1,0 +1,43 @@
+{
+  "metrics": {
+    "mfcc_vs_librosa_mfcc": {
+      "mae": 40.561159800815226,
+      "rmse": 65.0231017185262,
+      "max_abs_error": 351.1738609482843
+    },
+    "mfcc_vs_librosa_mfcc_scaled_ln": {
+      "mae": 0.482646974378843,
+      "rmse": 0.6180188860960388,
+      "max_abs_error": 2.933488091689029
+    },
+    "log_mel_vs_librosa_log_mel": {
+      "mae": 0.057799585461681416,
+      "rmse": 0.08982942834687932,
+      "max_abs_error": 0.7066260870538965
+    },
+    "mfcc_vs_librosa_ln_dct": {
+      "mae": 0.48264847065212296,
+      "rmse": 0.6180197981992099,
+      "max_abs_error": 2.9334863504205257
+    }
+  },
+  "librosa_config": {
+    "sr": 16000,
+    "n_mfcc": 13,
+    "n_fft": 512,
+    "hop_length": 160,
+    "win_length": 400,
+    "center": false,
+    "power": 2.0,
+    "n_mels": 26,
+    "fmin": 300.0,
+    "fmax": 8000.0,
+    "htk": true,
+    "mel_norm": null,
+    "dct_type": 2,
+    "norm": null,
+    "lifter": 0,
+    "window": "自定义 Hamming 数组 (0.54-0.46cos(2πn/(L-1)), L=400)",
+    "input": "预加重信号，左补 56 零 + 尾部补零到自定义填充长度 + 右补 56 零"
+  }
+}
